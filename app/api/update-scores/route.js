@@ -72,6 +72,20 @@ export async function GET() {
     }
     }
 
+    // Passagem final de segurança para garantir a sincronia de toda a base:
+    // Às vezes o valor anterior de user.points já estava dessincronizado antes de usar deltas,
+    // então aqui recalcula a soma literal (SUM) de todos os palpites do usuário.
+    const allUsers = await prisma.user.findMany({ include: { predictions: true } });
+    for (const u of allUsers) {
+      const truePoints = u.predictions.reduce((acc, p) => acc + (p.pointsEarned || 0), 0);
+      if (u.points !== truePoints) {
+        await prisma.user.update({
+          where: { id: u.id },
+          data: { points: truePoints }
+        });
+      }
+    }
+
     return NextResponse.json({ success: true, updatedPredictions: updatedCount });
 
   } catch (error) {
