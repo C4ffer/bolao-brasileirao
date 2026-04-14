@@ -86,42 +86,51 @@ export async function updateScoresAction() {
   if (!session) return;
   
   try {
-    const data = await getCartolaMatches();
-    if (!data || !data.partidas) return;
+    const currentData = await getCartolaMatches();
+    if (!currentData) return;
+    const currentRodada = currentData.rodada || 1;
 
-    for (const match of data.partidas) {
-      if (match.placar_oficial_mandante === null || match.placar_oficial_visitante === null) continue;
+    // Sincroniza retroativamente: verifica todas as rodadas até a atual!
+    // Usamos um loop para garantir que tudo do passado vire ponto.
+    for (let r = 1; r <= currentRodada; r++) {
+      const data = await getCartolaMatches(r);
+      if (!data || !data.partidas) continue;
 
-      const realHome = match.placar_oficial_mandante;
-      const realAway = match.placar_oficial_visitante;
-      const realResult = realHome > realAway ? 'HOME' : realHome < realAway ? 'AWAY' : 'TIE';
+      for (const match of data.partidas) {
+        if (match.placar_oficial_mandante === null || match.placar_oficial_visitante === null) continue;
 
-      const predictions = await prisma.prediction.findMany({
-        where: { matchId: match.partida_id, pointsEarned: null }
-      });
+        const realHome = match.placar_oficial_mandante;
+        const realAway = match.placar_oficial_visitante;
+        const realResult = realHome > realAway ? 'HOME' : realHome < realAway ? 'AWAY' : 'TIE';
 
-      for (const p of predictions) {
-        const predHome = p.homeScore;
-        const predAway = p.awayScore;
-        const predResult = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'TIE';
+        const predictions = await prisma.prediction.findMany({
+          where: { matchId: match.partida_id, pointsEarned: null }
+        });
 
-        let points = 0;
-        if (predHome === realHome && predAway === realAway) {
-          points = 3;
-        } else if (predResult === realResult) {
-          points = 1;
+        for (const p of predictions) {
+          const predHome = p.homeScore;
+          const predAway = p.awayScore;
+          const predResult = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'TIE';
+
+          let points = 0;
+          if (predHome === realHome && predAway === realAway) {
+            points = 3;
+          } else if (predResult === realResult) {
+            points = 1;
+          }
+
+          // Se a data já passou e não tem pontos marcados, ele dá zero também se não for 1 nem 3.
+          await prisma.$transaction([
+            prisma.prediction.update({
+              where: { id: p.id },
+              data: { pointsEarned: points }
+            }),
+            prisma.user.update({
+              where: { id: p.userId },
+              data: { points: { increment: points } }
+            })
+          ]);
         }
-
-        await prisma.$transaction([
-          prisma.prediction.update({
-            where: { id: p.id },
-            data: { pointsEarned: points }
-          }),
-          prisma.user.update({
-            where: { id: p.userId },
-            data: { points: { increment: points } }
-          })
-        ]);
       }
     }
   } catch (error) {
@@ -129,6 +138,6 @@ export async function updateScoresAction() {
   }
   
   revalidatePath('/ranking');
-  redirect('/ranking');
+  revalidatePath('/historico');
 }
 
