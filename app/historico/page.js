@@ -163,7 +163,10 @@ export default async function Historico({ searchParams }) {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--surface-border)', textAlign: 'left', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '12px' }}>Jogador</th>
-                  <th style={{ padding: '12px' }}>Status de Palpites (Visão Geral)</th>
+                  {(() => {
+                     const isRoundFinished = partidas.length > 0 && partidas.every(m => Date.now() >= new Date(m.partida_data).getTime());
+                     return <th style={{ padding: '12px' }}>{isRoundFinished ? 'Pontuação na Rodada' : 'Status de Palpites (Visão Geral)'}</th>;
+                  })()}
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +175,7 @@ export default async function Historico({ searchParams }) {
                   const totalPartidas = partidas.length;
                   const palpitados = userPreds.length;
                   const faltam = totalPartidas - palpitados;
+                  const isRoundFinished = totalPartidas > 0 && partidas.every(m => Date.now() >= new Date(m.partida_data).getTime());
 
                   return (
                     <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -179,17 +183,23 @@ export default async function Historico({ searchParams }) {
                         {user.username} {user.id === session.id && <span style={{ fontSize: '0.8rem', backgroundColor: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', marginLeft: '8px' }}>Você</span>}
                       </td>
                       <td style={{ padding: '16px 12px' }}>
-                        {palpitados > 0 ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${(palpitados / totalPartidas) * 100}%`, background: palpitados === totalPartidas ? 'var(--secondary)' : 'var(--primary)', height: '100%' }}></div>
-                            </div>
-                            <span style={{ fontSize: '0.9rem', color: palpitados === totalPartidas ? 'var(--secondary)' : 'var(--text-muted)' }}>
-                              {palpitados} de {totalPartidas} jogos
-                            </span>
+                        {isRoundFinished ? (
+                          <div style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>
+                            {userPreds.reduce((acc, p) => acc + (p.pointsEarned || 0), 0)} pts conquistados
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>Nenhum palpite ainda ({faltam} restantes)</span>
+                           palpitados > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${(palpitados / totalPartidas) * 100}%`, background: palpitados === totalPartidas ? 'var(--secondary)' : 'var(--primary)', height: '100%' }}></div>
+                              </div>
+                              <span style={{ fontSize: '0.9rem', color: palpitados === totalPartidas ? 'var(--secondary)' : 'var(--text-muted)' }}>
+                                {palpitados} de {totalPartidas} jogos
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>Nenhum palpite ({faltam} restantes)</span>
+                          )
                         )}
                       </td>
                     </tr>
