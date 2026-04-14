@@ -11,8 +11,9 @@ export default async function Historico({ searchParams }) {
     redirect('/');
   }
 
-  const rodadaParam = searchParams?.rodada || null;
-  const targetUserId = searchParams?.userId || null;
+  const params = await searchParams;
+  const rodadaParam = params?.rodada || null;
+  const targetUserId = params?.userId || null;
 
   // Busca dados daquela rodada
   const cartolaData = await getCartolaMatches(rodadaParam);
