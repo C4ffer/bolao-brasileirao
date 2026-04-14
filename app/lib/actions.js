@@ -104,7 +104,7 @@ export async function updateScoresAction() {
         const realResult = realHome > realAway ? 'HOME' : realHome < realAway ? 'AWAY' : 'TIE';
 
         const predictions = await prisma.prediction.findMany({
-          where: { matchId: match.partida_id, pointsEarned: null }
+          where: { matchId: match.partida_id }
         });
 
         for (const p of predictions) {
@@ -119,17 +119,20 @@ export async function updateScoresAction() {
             points = 1;
           }
 
-          // Se a data já passou e não tem pontos marcados, ele dá zero também se não for 1 nem 3.
-          await prisma.$transaction([
-            prisma.prediction.update({
-              where: { id: p.id },
-              data: { pointsEarned: points }
-            }),
-            prisma.user.update({
-              where: { id: p.userId },
-              data: { points: { increment: points } }
-            })
-          ]);
+          if (p.pointsEarned !== points) {
+            const delta = points - (p.pointsEarned || 0);
+
+            await prisma.$transaction([
+              prisma.prediction.update({
+                where: { id: p.id },
+                data: { pointsEarned: points }
+              }),
+              prisma.user.update({
+                where: { id: p.userId },
+                data: { points: { increment: delta } }
+              })
+            ]);
+          }
         }
       }
     }

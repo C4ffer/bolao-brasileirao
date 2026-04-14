@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '../lib/auth';
 import { prisma } from '../lib/prisma';
 import Navbar from '../components/Navbar';
-import { updateScoresAction } from '../lib/actions';
+import UpdateScoresButton from '../components/UpdateScoresButton';
 
 export default async function Ranking() {
   const session = await getSession();
@@ -42,12 +42,7 @@ export default async function Ranking() {
       <main className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <h2>Ranking <span className="title-gradient">Geral</span></h2>
-          <form action={updateScoresAction}>
-             {/* Botão administrativo acessível a todos para teste inicial */}
-             <button type="submit" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-              Atualizar Pontos
-             </button>
-          </form>
+          <UpdateScoresButton />
         </div>
 
         <div className="glass-panel" style={{ overflow: 'hidden' }}>
