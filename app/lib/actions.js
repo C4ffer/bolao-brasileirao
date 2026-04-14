@@ -78,3 +78,57 @@ export async function savePredictionAction(matchId, homeScore, awayScore) {
   }
 }
 
+import { getCartolaMatches } from './cartolaApi';
+import { revalidatePath } from 'next/cache';
+
+export async function updateScoresAction() {
+  const session = await getSession();
+  if (!session) return;
+  
+  try {
+    const data = await getCartolaMatches();
+    if (!data || !data.partidas) return;
+
+    for (const match of data.partidas) {
+      if (match.placar_oficial_mandante === null || match.placar_oficial_visitante === null) continue;
+
+      const realHome = match.placar_oficial_mandante;
+      const realAway = match.placar_oficial_visitante;
+      const realResult = realHome > realAway ? 'HOME' : realHome < realAway ? 'AWAY' : 'TIE';
+
+      const predictions = await prisma.prediction.findMany({
+        where: { matchId: match.partida_id, pointsEarned: null }
+      });
+
+      for (const p of predictions) {
+        const predHome = p.homeScore;
+        const predAway = p.awayScore;
+        const predResult = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'TIE';
+
+        let points = 0;
+        if (predHome === realHome && predAway === realAway) {
+          points = 3;
+        } else if (predResult === realResult) {
+          points = 1;
+        }
+
+        await prisma.$transaction([
+          prisma.prediction.update({
+            where: { id: p.id },
+            data: { pointsEarned: points }
+          }),
+          prisma.user.update({
+            where: { id: p.userId },
+            data: { points: { increment: points } }
+          })
+        ]);
+      }
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  
+  revalidatePath('/ranking');
+  redirect('/ranking');
+}
+
