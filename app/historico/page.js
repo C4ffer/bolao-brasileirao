@@ -15,8 +15,13 @@ export default async function Historico({ searchParams }) {
   const rodadaParam = params?.rodada || null;
   const targetUserId = params?.userId || null;
 
-  // Busca dados daquela rodada
-  const cartolaData = await getCartolaMatches(rodadaParam);
+  // Busca dados da rodada ATUAL sempre (para saber quantos botões desenhar)
+  const currentCartolaData = await getCartolaMatches();
+  const currentRodada = currentCartolaData?.rodada || 1;
+
+  // Busca dados da rodada EXIBIDA (pode ser a atual ou uma do passado baseada no URL)
+  const cartolaData = rodadaParam ? await getCartolaMatches(rodadaParam) : currentCartolaData;
+
   if (!cartolaData || !cartolaData.partidas) {
     return (
       <div className="container">
@@ -55,11 +60,8 @@ export default async function Historico({ searchParams }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontWeight: 'bold' }}>Rodada:</span>
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px' }}>
-                {[...Array(rodada + 1)].map((_, i) => {
+                {[...Array(currentRodada)].map((_, i) => {
                   const r = i + 1;
-                  // Não deixar criar botão se for pro futuro (Cartola só dá a rodada atual ou passadas pra gente prever fácil)
-                  // Mas o cartola.rodada é a atual. Vamos listar da 1 até a (rodada atual)
-                  if (r > cartolaData.rodada && !rodadaParam) return null; 
                   return (
                     <Link 
                       key={r} 
