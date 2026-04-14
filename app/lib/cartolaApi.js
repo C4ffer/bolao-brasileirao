@@ -1,6 +1,10 @@
-export async function getCartolaMatches() {
+export async function getCartolaMatches(rodadaId = null) {
   try {
-    const res = await fetch('https://api.cartola.globo.com/partidas', {
+    const url = rodadaId 
+      ? `https://api.cartola.globo.com/partidas/${rodadaId}`
+      : 'https://api.cartola.globo.com/partidas';
+      
+    const res = await fetch(url, {
       next: { revalidate: 60 } // revalidate every 1 minute
     });
     

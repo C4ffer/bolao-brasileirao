@@ -15,7 +15,10 @@ export default function Navbar({ username }) {
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
         <Link href="/dashboard" style={{ color: pathname === '/dashboard' ? 'var(--primary)' : 'var(--text-main)', fontWeight: pathname === '/dashboard' ? 'bold' : 'normal', transition: 'var(--transition)' }}>
-          Jogos
+          Meus Jogos
+        </Link>
+        <Link href="/historico" style={{ color: pathname === '/historico' ? 'var(--primary)' : 'var(--text-main)', fontWeight: pathname === '/historico' ? 'bold' : 'normal', transition: 'var(--transition)' }}>
+          Histórico / Palpites
         </Link>
         <Link href="/ranking" style={{ color: pathname === '/ranking' ? 'var(--primary)' : 'var(--text-main)', fontWeight: pathname === '/ranking' ? 'bold' : 'normal', transition: 'var(--transition)' }}>
           Ranking
