@@ -10,16 +10,30 @@ export default async function Ranking() {
     redirect('/');
   }
 
-  const users = await prisma.user.findMany({
-    orderBy: {
-      points: 'desc'
-    },
+  const dbUsers = await prisma.user.findMany({
     select: {
       id: true,
       username: true,
       points: true
     }
   });
+
+  const exactCounts = await prisma.prediction.groupBy({
+    by: ['userId'],
+    where: { pointsEarned: 3 },
+    _count: { pointsEarned: true }
+  });
+
+  const users = dbUsers.map(u => {
+    const exato = exactCounts.find(e => e.userId === u.id);
+    return {
+      ...u,
+      exatos: exato ? exato._count.pointsEarned : 0
+    };
+  });
+
+  // Ordenar por pontos (desc) e desempate por exatos (desc)
+  users.sort((a, b) => b.points - a.points || b.exatos - a.exatos);
 
   return (
     <div className="container">
@@ -42,6 +56,7 @@ export default async function Ranking() {
               <tr style={{ borderBottom: '1px solid var(--surface-border)', textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.05)' }}>
                 <th style={{ padding: '16px 24px' }}>Posição</th>
                 <th style={{ padding: '16px 24px' }}>Usuário</th>
+                <th style={{ padding: '16px 24px', textAlign: 'center' }}>Placares Exatos</th>
                 <th style={{ padding: '16px 24px', textAlign: 'right' }}>Pontos</th>
               </tr>
             </thead>
@@ -54,14 +69,17 @@ export default async function Ranking() {
                   <td style={{ padding: '16px 24px' }}>
                     {user.username} {user.id === session.id && <span style={{ fontSize: '0.8rem', backgroundColor: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', marginLeft: '8px' }}>Você</span>}
                   </td>
-                  <td style={{ padding: '16px 24px', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td style={{ padding: '16px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    {user.exatos}
+                  </td>
+                  <td style={{ padding: '16px 24px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-main)' }}>
                     {user.points} pts
                   </td>
                 </tr>
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan="3" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     Nenhum jogador no ranking ainda.
                   </td>
                 </tr>
